@@ -33,7 +33,7 @@ library netting-lib
 
 extra-source-files: CHANGELOG.md
 
-executable thesis
+executable amm-netting
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
