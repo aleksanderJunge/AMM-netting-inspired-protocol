@@ -3,6 +3,7 @@
 ### Requirements:
 
 * cabal
+* haskell (tested on ghc 9.6.1)
   
 
 ### building project:
