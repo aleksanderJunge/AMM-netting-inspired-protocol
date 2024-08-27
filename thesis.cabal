@@ -24,8 +24,8 @@ version:            0.1.0.0
 -- copyright:
 -- category:
 library netting-lib
-    exposed-modules: Util,
-                     Sem
+    exposed-modules: Netting.Funcs,
+                     Netting.Sem
     build-depends: base,
                    containers
     hs-source-dirs: lib

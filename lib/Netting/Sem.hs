@@ -1,4 +1,4 @@
-module Sem where
+module Netting.Sem where
 
 import qualified Data.Map as DM
 import qualified Data.Sequence as DS
@@ -25,7 +25,6 @@ data AMM = AMM
 
 type State = ([AMM], [User])
 
--- TODO: this could maybe just be a Token, if there isn't a criteria on the swap rate
 data Transaction = Transaction
   { sender :: String,
     from   :: TokenAmt,
