@@ -94,3 +94,16 @@ main = do
     let ex5_init_conf  = Configuration ex5_init_state ex5_init_state DS.Empty
     ex5_res <- exec_txns ex5_init_conf ex5_txns ex5_q_len 0
     pure ()
+
+    print "On the AMM (WBTC: 10, WETH 40) the swap input amount that brings the AMM into equilibrium is: "
+    print $ singleAmmArbitrage (AMM (WBTC, 10) (WETH, 40))
+
+    print "On the AMM (WBTC: 1, WETH 40) the swap input amount that brings the AMM into equilibrium is: "
+    print $ singleAmmArbitrage (AMM (WBTC, 1) (WETH, 40))
+    
+    let arbTxn = genSingleArbitrageTxn "A" ex1_init_state
+    print "Single highest gain transaction to execute on ex1_amms is :"
+    print arbTxn
+    print "which yields the state :"
+    print $ fromMaybe ex1_init_state (executeSwap ex1_init_state arbTxn)
+    print "in which the wbtc/usdc amm is in balance with oracle rate"
