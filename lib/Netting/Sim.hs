@@ -16,8 +16,8 @@ genInRange (from, to) = getStdRandom (randomR (from, to))
 -- constructs the single highest gain transaction for the user 'name' in state s (not caring if he can afford to execute it)
 genSingleArbitrageTxn :: String -> State -> Transaction
 genSingleArbitrageTxn name s@(amms, users) =
-  let input_amounts = map singleAmmArbitrage amms in
-    let transactions = map (\(x, y) -> Transaction name x y) input_amounts in 
+  let input_output_pairs = map singleAmmArbitrage amms in
+    let transactions = map (\(x, y) -> Transaction name x y) input_output_pairs in 
       let gains = map (flip gain s) transactions in 
         transactions !! fromMaybe 0 (elemIndex (maximum gains) gains)
 
