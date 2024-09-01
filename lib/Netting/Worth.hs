@@ -28,7 +28,7 @@ netWorth (User wallet _) =
 
 -- calcualtes the gain made by 'name' after transaction txn in s
 gain :: Transaction -> State -> Maybe Float
-gain txn@(Transaction name (t0, v0) (t1, v1)) s@(amms, users) =
+gain txn@(Transaction name _ _) s@(_, users) =
     case findUser users name 0 of
         Nothing  -> Nothing -- if user not in s, return Nothing
         Just idx -> 
