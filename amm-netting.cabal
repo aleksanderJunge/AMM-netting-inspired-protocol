@@ -24,10 +24,13 @@ version:            0.1.0.0
 -- copyright:
 -- category:
 library netting-lib
-    exposed-modules: Netting.Funcs,
-                     Netting.Sem
+    exposed-modules: Netting.AmmFuns,
+                     Netting.Sem,
+                     Netting.Sim,
+                     Netting.Worth
     build-depends: base,
-                   containers
+                   containers,
+                   random
     hs-source-dirs: lib
     default-language: Haskell2010
 
@@ -43,7 +46,6 @@ executable amm-netting
     -- other-extensions:
     build-depends:    base ^>=4.18.0.0, 
                       netting-lib,
-                      containers,
-                      random
+                      containers
     hs-source-dirs:   app
     default-language: Haskell2010

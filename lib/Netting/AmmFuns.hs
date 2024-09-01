@@ -1,4 +1,4 @@
-module Netting.Funcs where
+module Netting.AmmFuns where
 
 import qualified Data.Map as DM
 import Netting.Sem
@@ -44,7 +44,7 @@ net s q@(txn :<| txns) =
         let q' = DS.deleteAt violating_idx q in
           net s q'
 
-net s DS.Empty = DS.Empty
+net _ DS.Empty = DS.Empty
 
 -- state machine only supports swaps, TODO: implement redeem/deposit
 takeStep :: Configuration -> Transaction -> QLength -> Maybe Configuration
@@ -64,8 +64,8 @@ takeStep conf@(Configuration green sim queue) txn maxqlen =
 
 isGreen :: State -> Bool
 isGreen (_, users) = 
-  (==0) . length $ filter (\(User w _) -> check_neg w) users
-  where check_neg wallet = (not . DM.null) $ DM.filter (< 0.0) wallet
+  (==0) . length $ filter (\(User w _) -> is_neg w) users
+  where is_neg = not . DM.null . DM.filter (< 0.0)
 
 getBal :: Token -> Balance -> Float
 getBal = DM.findWithDefault 0.0
@@ -93,7 +93,7 @@ findAMM (amm@(AMM (t0, r0) (t1, r1)):amms) t2 t3 i =
     Just i
   else
     findAMM amms t2 t3 (i + 1)
-findAMM [] t2 t3 i = Nothing
+findAMM [] _ _ _ = Nothing
     
 -- returns the index of the User corresponding to the name (or Nothing)
 findUser :: [User] -> String -> Int -> Maybe Int
@@ -102,18 +102,4 @@ findUser ((User _ name):users) lfName i =
     Just i
   else
     findUser users lfName (i + 1)
-findUser [] lfName i = Nothing
-
--- can be used to provision AMMs and txns with "real" exchange rates
-oracleXRate :: Token -> Token -> Float
-oracleXRate WBTC WBTC = 1.0
-oracleXRate WBTC WETH = 22.70
-oracleXRate WBTC USDC = 58793.6
-
-oracleXRate WETH WETH = 1.0 
-oracleXRate WETH WBTC = 1.0 / oracleXRate WBTC WETH
-oracleXRate WETH USDC = 2596.76
-
-oracleXRate USDC USDC = 1.0
-oracleXRate USDC WBTC = 1.0 / oracleXRate WBTC USDC
-oracleXRate USDC WETH = 1.0 / oracleXRate WETH USDC
+findUser [] _ _ = Nothing
