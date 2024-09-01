@@ -26,9 +26,21 @@ netWorth :: User -> Float
 netWorth (User wallet _) = 
     DM.foldrWithKey (\k v acc -> acc + v * (oracleXRate k USDC)) 0 wallet
 
+
+-- calcualtes the gain made by 'name' as his net worth in s' minus net worth in s
+gain :: String -> State -> State -> Maybe Float
+gain name (_, users) (_, users') =
+    case findUser users name 0 of
+        Nothing  -> Nothing -- if user not in s, return Nothing
+        Just idx -> 
+            case findUser users' name 0 of 
+                Nothing -> Nothing
+                Just idx' -> Just $ netWorth (users' !! idx') - netWorth (users !! idx)
+
+
 -- calcualtes the gain made by 'name' after transaction txn in s
-gain :: Transaction -> State -> Maybe Float
-gain txn@(Transaction name _ _) s@(_, users) =
+txnGain :: Transaction -> State -> Maybe Float
+txnGain txn@(Transaction name _ _) s@(_, users) =
     case findUser users name 0 of
         Nothing  -> Nothing -- if user not in s, return Nothing
         Just idx -> 
@@ -36,6 +48,7 @@ gain txn@(Transaction name _ _) s@(_, users) =
                 let s'@(amms', users') = fromMaybe s (executeSwap s txn) in 
                     let worth' = netWorth (users' !! idx) in -- fine, as executeSwap shouldn't reorder users
                         Just $ worth' - worth
+
 
 -- considers the arbitrage game on a single CFMM AMM (https://lmcs.episciences.org/10504/pdf, lemma 6.4)
 -- returns the 'input swap amount' that brings AMM back into equilibrium with oracle rate

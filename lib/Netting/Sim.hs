@@ -18,7 +18,7 @@ genSingleArbitrageTxn :: String -> State -> Transaction
 genSingleArbitrageTxn name s@(amms, users) =
   let input_output_pairs = map singleAmmArbitrage amms in
     let transactions = map (\(x, y) -> Transaction name x y) input_output_pairs in 
-      let gains = map (flip gain s) transactions in 
+      let gains = map (flip txnGain s) transactions in 
         transactions !! fromMaybe 0 (elemIndex (maximum gains) gains)
 
 -- TODO: Add more functions to generate transactions

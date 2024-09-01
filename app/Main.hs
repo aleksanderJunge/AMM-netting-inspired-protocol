@@ -80,10 +80,10 @@ main = do
     let ex1_a = User (fromList [(WBTC, 0), (WETH, 0), (USDC, 0)]) "A"
     let ex1_init_state = (ex1_amms, [ex1_a])
     let ex1_init_conf  = Configuration ex1_init_state ex1_init_state DS.Empty
-    Configuration (_, a':t) _ _ <- exec_txns ex1_init_conf ex1_txns ex1_q_len 0
+    Configuration g _ _ <- exec_txns ex1_init_conf ex1_txns ex1_q_len 0
 
-    print $ "executing swap(6 wbtc, 4 weth), A's gain is: " ++ show (fromMaybe 0 (gain (ex1_txns !! 0) ex1_init_state)) ++ " USDC"
-    print $ "gain after example 1 of user A is: " ++ show ((netWorth a') - (netWorth ex1_a)) ++ " USDC"
+    print $ "executing swap(6 wbtc, 4 weth), A's gain is: " ++ show (fromMaybe 0 (txnGain (ex1_txns !! 0) ex1_init_state)) ++ " USDC"
+    print $ "gain after example 1 of user A is: " ++ show (gain "A" ex1_init_state g) ++ " USDC"
 
     print "Example 5: "
 
