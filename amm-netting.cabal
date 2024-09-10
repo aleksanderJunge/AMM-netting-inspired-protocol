@@ -44,7 +44,7 @@ executable amm-netting
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
-    build-depends:    base ^>=4.18.0.0, 
+    build-depends:    base >=4.18.0.0 && <= 4.20.0.0, 
                       netting-lib,
                       containers
     hs-source-dirs:   app
