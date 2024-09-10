@@ -63,8 +63,6 @@ test-suite tests
                    tasty, 
                    tasty-hunit, 
                    netting-lib,
-                   containers,
-                   tagged,
-                   optparse-applicative
+                   containers
     hs-source-dirs: tests
     default-language: Haskell2010
