@@ -1,4 +1,4 @@
-# Revision history for thesis
+# Revision history for amm-netting
 
 ## 0.1.0.0 -- YYYY-mm-dd
 

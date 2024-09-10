@@ -1,5 +1,5 @@
 cabal-version:      2.4
-name:               thesis
+name:               amm-netting
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
@@ -48,4 +48,23 @@ executable amm-netting
                       netting-lib,
                       containers
     hs-source-dirs:   app
+    default-language: Haskell2010
+
+test-suite tests
+    type: exitcode-stdio-1.0
+    main-is: Test.hs
+    other-modules: Examples.Example1,
+                   Examples.Example2,
+                   Examples.Example3,
+                   Examples.Example4,
+                   Examples.Example5,
+                   Examples.Example6
+    build-depends: base, 
+                   tasty, 
+                   tasty-hunit, 
+                   netting-lib,
+                   containers,
+                   tagged,
+                   optparse-applicative
+    hs-source-dirs: tests
     default-language: Haskell2010
