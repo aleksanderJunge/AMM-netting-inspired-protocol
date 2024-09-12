@@ -1,22 +1,42 @@
 module Netting.Sem where
 
-import qualified Data.Map as DM
-import qualified Data.Sequence as DS
+import qualified Data.Map as M
+import qualified Data.Sequence as S
 
-data Token
+data AtomicToken
   = T0
   | T1
   | T2
   deriving (Show, Eq, Ord)
 
-type Balance = DM.Map Token Float
+data MintedToken a
+  = MT (a, a)
+  deriving (Show, Ord)
+
+instance (Eq a) => Eq (MintedToken a) where
+  MT (t0, t1) == MT (t2, t3)
+    | (t0 == t2 && t1 == t3) || (t0 == t3 && t1 == t2) = True
+    | otherwise                                        = False
+  mtok1 /= mtok2 = not $ mtok1 == mtok2
+
+type MintedTokenT = MintedToken AtomicToken
+
+-- sort of like "Either", just for tokens
+data Token a b = AtomTok a | MintTok b
+  deriving (Show, Eq, Ord)
+
+type TokenT = Token AtomicToken MintedTokenT 
+
+type Balance = M.Map TokenT Float
 
 data User = User 
   { wallet  :: Balance,
     name    :: String }
     deriving (Show, Eq)
 
-type TokenAmt = (Token, Float)
+type TokenAmt = (AtomicToken, Float)
+
+type MintedTokenAmt = (MintedTokenT, Float)
 
 data AMM = AMM 
   { r0 :: TokenAmt,
@@ -29,19 +49,36 @@ instance Eq AMM where
     | otherwise                                        = False
   amm1 /= amm2 = not $ amm1 == amm2
 
-
 type State = ([AMM], [User])
 
--- To simplify matters, a transaction only contains the String name
--- of the sender, and not a 'User' object, as that would require maintaining 
--- the User.wallet in the transaction in addition to the states.
-data Transaction = Transaction
+data Transaction a b c
+  = Swp a | Dep b | Rdm c
+  deriving (Show, Eq)
+
+type TransactionT
+  = Transaction Swap Deposit Redeem
+
+data Swap
+  = Swap
   { sender :: String,
     from   :: TokenAmt,
-    to     :: TokenAmt } 
+    to     :: TokenAmt }
     deriving (Show, Eq)
 
-type Queue = DS.Seq Transaction
+data Deposit
+  = Deposit
+  { depositor :: String,
+    v0        :: TokenAmt,
+    v1        :: TokenAmt }
+    deriving (Show, Eq)
+
+data Redeem
+  = Redeem
+  { redeemer :: String,
+    v        :: MintedTokenAmt }
+    deriving (Show, Eq)
+
+type Queue = S.Seq TransactionT
 
 type QLength = Int
 

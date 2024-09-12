@@ -7,7 +7,7 @@ import Netting.Sem
 import Netting.AmmFuns
 import Netting.Sim
 import Netting.Worth
-import qualified Data.Sequence as DS
+import qualified Data.Sequence as S
 import Data.Foldable
 
 
@@ -28,7 +28,7 @@ main = do
     --let ex5_q_len = 2
     --let ex5_user = User (fromList [(T0, 0), (T1, 0), (T2, 4)]) "A"
     --let ex5_init_state = (ex5_amms, [ex5_user])
-    --let ex5_init_conf  = Configuration ex5_init_state ex5_init_state DS.Empty
+    --let ex5_init_conf  = Configuration ex5_init_state ex5_init_state S.Empty
     --ex5_res <- exec_txns ex5_init_conf ex5_txns ex5_q_len 0
     --pure ()
 
