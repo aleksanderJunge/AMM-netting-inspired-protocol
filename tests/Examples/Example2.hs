@@ -14,7 +14,7 @@ example2 :: TestTree
 example2 = 
   testCaseInfo "example 2 \"r-swap and AMM creation\"\n" do
     let ex2_amms = 
-          [(AMM (T0, 12) (T1, 12))]
+          [(AMM (T0, 8) (T1, 18))]
 
         ex2_txns = 
           [ Swp (Swap    "A" (T0, 4) (T1, 6)),
@@ -30,15 +30,13 @@ example2 =
 
         expected = Configuration 
           -- green
-          ([AMM (T0, 12.0) (T1, 12.0),
-            AMM (T1, 16.0) (T2,  4.0)],
-            [User (fromList [(AtomTok T0, 2.0),(AtomTok T1, 2.0),(AtomTok T2, 3.0), (MintTok $ MT(T1, T2), 2.0)]) "A",
-             User (fromList [(AtomTok T0, 0.0),(AtomTok T1, 0.0),(AtomTok T2, 3.0), (MintTok $ MT(T1, T2), 6.0)]) "B"])
+          ([AMM (T0, 8.0) (T1, 18.0)],
+            [User (fromList [(AtomTok T0, 0.0),(AtomTok T1, 0.0),(AtomTok T2, 6.0)]) "A",
+             User (fromList [(AtomTok T0, 6.0),(AtomTok T1, 6.0),(AtomTok T2, 0.0)]) "B"])
           -- simulated
-          ([AMM (T0, 12.0) (T1, 12.0),
-            AMM (T1, 16.0) (T2,  4.0)],
-            [User (fromList [(AtomTok T0, 2.0),(AtomTok T1, 2.0),(AtomTok T2, 3.0), (MintTok $ MT(T1, T2), 2.0)]) "A",
-             User (fromList [(AtomTok T0, 0.0),(AtomTok T1, 0.0),(AtomTok T2, 3.0), (MintTok $ MT(T1, T2), 6.0)]) "B"])
+          ([AMM (T0, 8.0) (T1, 18.0)],
+            [User (fromList [(AtomTok T0, 0.0),(AtomTok T1, 0.0),(AtomTok T2, 6.0)]) "A",
+             User (fromList [(AtomTok T0, 6.0),(AtomTok T1, 6.0),(AtomTok T2, 0.0)]) "B"])
           -- queue
           (S.Empty)
         err_message = unlines (log ++ ["expected conf:"] ++ [(show expected)] ++ ["but got:"] ++ [(show res)])

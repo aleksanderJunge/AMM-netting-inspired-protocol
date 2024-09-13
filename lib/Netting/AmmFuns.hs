@@ -87,8 +87,32 @@ executeDeposit s@(amms, users) dep@(Deposit name (t0, v0) (t1, v1))
       in v0Bal >= v0 && v1Bal >= v1
 
 executeRedeem :: State -> Redeem -> Either String State
-executeRedeem swp dep = Left "TODO: Implement me"
-
+executeRedeem s@(amms, users) rdm@(Redeem name (mt@(MT (t0, t1)), v))
+  | v <= 0    = Left $ "Must redeem > 0 " ++ (show mt)
+  | canAfford = 
+      case findUserIdx users name of 
+        Nothing -> Left "User redeeming doesn't exist in state"
+        Just i  -> 
+          case findAMMIdx amms t0 t1 of 
+            Nothing -> Left $ " AMM for: " ++ (show t0) ++ " " ++ (show t1) ++ " doesn't exist.(shouldn't be possible)"
+            Just j  -> 
+              let (head_users, u@(User w _):tail_users)             = splitAt i users
+                  (head_amms, (AMM (t0', r0) (t1', r1)):tail_amms ) = splitAt j amms
+                  supply = tokenSupply s (MintTok $ mt) 
+                  v0     = v * r0 / supply
+                  v1     = v * r1 / supply
+                  amm'   = (AMM (t0, r0 - v0) (t1, r1 - v1))
+                  bal'   = updateBal (MintTok mt) (-v)
+                         . updateBal (AtomTok t0) v0
+                         . updateBal (AtomTok t1) v1 $ w
+              in Right (head_amms ++ amm' : tail_amms, head_users ++ (User bal' name) : tail_users)
+  | otherwise = Left $ "User " ++ name ++ " can't afford to execute " ++ (show rdm)
+  where
+    updateBal t v bal = M.insert t ((getBal t bal) + v) bal
+    canAfford =
+      let userBal = fromMaybe M.empty (liftM (\(User w _) -> w) (findUser name users))
+          vBal    = getBal (MintTok mt) userBal
+      in vBal >= v
 
 -- Takes a state and a queue of txns and finds a solution to the 'netting-problem'
 net :: (Queue -> State -> Int) -> State -> (Queue, String) -> (Queue, String)
@@ -106,12 +130,10 @@ net _ _ (S.Empty, log) = (S.Empty, log)
 takeStep :: (Configuration, Int, [String]) -> TransactionT -> QLength -> Bool -> (Configuration, Int, [String])
 takeStep (conf@(Configuration green sim queue), i, log) txn maxqlen runInMaxOverdraftMode =
   case txn of 
-    Swp swp -> second_lvl_sem $ executeSwap sim swp
+    Swp swp -> second_lvl_sem $ executeSwap    sim swp
     Dep dep -> second_lvl_sem $ executeDeposit sim dep
-    Rdm (Redeem  n v )    -> (conf, 0, ["Redeem not implemented yet!"])
+    Rdm rdm -> second_lvl_sem $ executeRedeem  sim rdm
   where 
-    add_to_log message s i = 
-      "\ntxn " ++ (show i) ++ ": " ++ (show txn) ++ message ++ " in state:\n" ++ (show s) ++ "\n"
     second_lvl_sem =
       \case
         Left message -> (conf, i + 1, (add_to_log (" not executed becase " ++ message) sim i) : log)
@@ -127,6 +149,8 @@ takeStep (conf@(Configuration green sim queue), i, log) txn maxqlen runInMaxOver
               in
                 (Configuration s'' s'' S.Empty, i + 1, 
                   (add_to_log (" applied netting rule, netting log:\n" ++ net_log) sim i) : log)
+    add_to_log message s i = 
+      "\ntxn " ++ (show i) ++ ": " ++ (show txn) ++ message ++ " in state:\n" ++ (show s) ++ "\n"
 
 
 -- used to run a sequence of transactions on a configuration
@@ -150,10 +174,10 @@ getBal = M.findWithDefault 0.0
 -- Runs all the transactions in the queue and returns a new state
 runQueue :: Queue -> State -> State
 runQueue (txn :<| txns) s =
-  let s' = case txn of 
-            Swp swp@(Swap n v0 v1)    -> fromRight s (executeSwap s swp)
-            Dep dep@(Deposit n v0 v1) -> fromRight s (executeDeposit s dep)
-            Rdm rdm@(Redeem  n v )    -> s
+  let s' = case txn of
+            Swp swp -> fromRight s (executeSwap    s swp)
+            Dep dep -> fromRight s (executeDeposit s dep)
+            Rdm rdm -> fromRight s (executeRedeem  s rdm)
   in runQueue txns s'
 runQueue S.Empty s = s
 
@@ -164,15 +188,14 @@ findFirstOverdraft q s =
   where 
     find_idx (txn :<| txns) s i =
       case txn of 
-        Swp swp -> 
-          case executeSwap s swp of
-            Left _  -> i
+        Swp swp -> check_res $ executeSwap    s swp 
+        Dep dep -> check_res $ executeDeposit s dep
+        Rdm rdm -> check_res $ executeRedeem  s rdm
+      where 
+        check_res = 
+          \case
+            Left _   -> i
             Right s' -> if isGreen s' then find_idx txns s' (i+1) else i
-        Dep dep -> 
-          case executeDeposit s dep of 
-            Left _  -> i
-            Right s' -> if isGreen s' then find_idx txns s' (i+1) else i
-        Rdm rdm -> i -- TODO : Fix when supported
 
 -- takes a queue and a state, returns index of transaction in queue that causes the biggest overdraft
 findLargestOverdraft :: Queue -> State -> Int
@@ -182,36 +205,42 @@ findLargestOverdraft q s =
     find_idx S.Empty _ _ idx_lo _ = idx_lo
     find_idx (txn :<| txns) s i idx_lo lo = 
       case txn of 
-        Swp swp@(Swap n v0 v1) -> 
+        Swp swp@(Swap n (t0, v0) _) -> 
           case executeSwap s swp of
             Left _  -> i
             Right s'@(_, users) -> 
-              case findUserIdx users (sender swp) of
+              case findUserIdx users n of
                 Nothing  -> i
-                Just idx -> let name      = sender swp
-                                bal       = wallet $ users !! idx
-                                token     = fst (from swp)
-                                overdraft = getBal (AtomTok token) bal
+                Just idx -> let bal       = wallet $ users !! idx
+                                overdraft = getBal (AtomTok t0) bal
                                 idx_lo'   = if overdraft < lo then i else idx_lo
                             in 
                               find_idx txns s' (i+1) idx_lo' (min lo overdraft)
-        Dep dep@(Deposit n v0' v1') -> 
+        Dep dep@(Deposit n (t0, v0) (t1, v1)) -> 
           case executeDeposit s dep of 
             Left _  -> i
             Right s'@(_, users) -> 
-              case findUserIdx users (depositor dep) of
+              case findUserIdx users n of
                 Nothing  -> i
-                Just idx -> let name       = depositor dep
-                                bal        = wallet $ users !! idx
-                                token1     = fst (v0 dep)
-                                token2     = fst (v1 dep) 
+                Just idx -> let bal        = wallet $ users !! idx
                                 -- deposits shouldn't be able to overdraft, but...
-                                overdraft1 = getBal (AtomTok token1) bal
-                                overdraft2 = getBal (AtomTok token1) bal
+                                overdraft1 = getBal (AtomTok t0) bal
+                                overdraft2 = getBal (AtomTok t1) bal
                                 idx_lo'    = if (min overdraft1 overdraft2) < lo then i else idx_lo
                             in 
                               find_idx txns s' (i+1) idx_lo' (min lo (min overdraft1 overdraft2))
-        Rdm rdm@(Redeem  n v )  -> i -- TODO : Fix when supported
+        Rdm rdm@(Redeem  n (mt, v) )  ->
+          case executeRedeem s rdm of 
+            Left _  -> i
+            Right s'@(_, users) -> 
+              case findUserIdx users n of
+                Nothing  -> i
+                Just idx -> let bal        = wallet $ users !! idx
+                                -- redeems shouldn't be able to overdraft, but...
+                                overdraft = getBal (MintTok mt) bal
+                                idx_lo'    = if overdraft < lo then i else idx_lo
+                            in 
+                              find_idx txns s' (i+1) idx_lo' (min lo overdraft)
 
 -- returns the index of the AMM corresponding to the AtomicToken pair (or Nothing)
 findAMMIdx :: [AMM] -> AtomicToken -> AtomicToken -> Maybe Int

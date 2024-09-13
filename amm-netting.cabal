@@ -53,7 +53,8 @@ executable amm-netting
 test-suite tests
     type: exitcode-stdio-1.0
     main-is: Test.hs
-    other-modules: Examples.Example1,
+    other-modules: Examples.IntroductionExample
+                   Examples.Example1,
                    Examples.Example2,
                    Examples.Example3,
                    Examples.Example4,
