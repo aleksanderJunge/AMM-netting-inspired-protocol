@@ -91,16 +91,17 @@ executeRedeem swp dep = Left "TODO: Implement me"
 
 
 -- Takes a state and a queue of txns and finds a solution to the 'netting-problem'
-net :: (Queue -> State -> Int) -> State -> Queue -> Queue
-net findOverdraft s q@(txn :<| txns) = 
+net :: (Queue -> State -> Int) -> State -> (Queue, String) -> (Queue, String)
+net findOverdraft s (q@(txn :<| txns), log) = 
   let s' = runQueue q s in 
-    if isGreen s' then q
+    if isGreen s' then (q, log)
     else
       let violating_idx = findOverdraft q s
           q'            = S.deleteAt violating_idx q
+          log_msg       = "removed idx " ++ (show violating_idx) ++ ", q now consists of\n" ++ (show . toList $ q') ++ "\n"
       in 
-        net findOverdraft s q'
-net _ _ S.Empty = S.Empty
+        net findOverdraft s (q', log ++ log_msg)
+net _ _ (S.Empty, log) = (S.Empty, log)
 
 takeStep :: (Configuration, Int, [String]) -> TransactionT -> QLength -> Bool -> (Configuration, Int, [String])
 takeStep (conf@(Configuration green sim queue), i, log) txn maxqlen runInMaxOverdraftMode =
@@ -121,11 +122,11 @@ takeStep (conf@(Configuration green sim queue), i, log) txn maxqlen runInMaxOver
               (Configuration green s' (queue :|> txn), i + 1, (add_to_log " applied overdraft rule" sim i) : log)
             else
               let nettingAlgo = if runInMaxOverdraftMode then findLargestOverdraft else findFirstOverdraft
-                  q'          = net nettingAlgo green (queue :|> txn)
-                  s''         = runQueue q' green 
+                  (q', net_log) = net nettingAlgo green (queue :|> txn, "")
+                  s''           = runQueue q' green 
               in
                 (Configuration s'' s'' S.Empty, i + 1, 
-                  (add_to_log (" applied netting rule on queue: \n" ++ (show . toList $ queue :|> txn) ++ "\n") sim i) : log)
+                  (add_to_log (" applied netting rule, netting log:\n" ++ net_log) sim i) : log)
 
 
 -- used to run a sequence of transactions on a configuration
@@ -176,42 +177,40 @@ findFirstOverdraft q s =
 -- takes a queue and a state, returns index of transaction in queue that causes the biggest overdraft
 findLargestOverdraft :: Queue -> State -> Int
 findLargestOverdraft q s =
-  find_idx q s 0 0
+  find_idx q s 0 0 0
   where 
-    find_idx S.Empty _ _ _ = 0 -- unreachable, as there will be some txn in q giving negative balance when this is called
-    find_idx (txn :<| txns) s i lo = 
+    find_idx S.Empty _ _ idx_lo _ = idx_lo
+    find_idx (txn :<| txns) s i idx_lo lo = 
       case txn of 
         Swp swp@(Swap n v0 v1) -> 
           case executeSwap s swp of
             Left _  -> i
             Right s'@(_, users) -> 
-              if isGreen s' then find_idx txns s' (i+1) lo 
-              else
-                case findUserIdx users (sender swp) of
-                  Nothing  -> i
-                  Just idx -> let name      = sender swp
-                                  bal       = wallet $ users !! idx
-                                  token     = fst (from swp)
-                                  overdraft = getBal (AtomTok token) bal
-                              in 
-                                find_idx txns s' (i+1) (min lo overdraft)
+              case findUserIdx users (sender swp) of
+                Nothing  -> i
+                Just idx -> let name      = sender swp
+                                bal       = wallet $ users !! idx
+                                token     = fst (from swp)
+                                overdraft = getBal (AtomTok token) bal
+                                idx_lo'   = if overdraft < lo then i else idx_lo
+                            in 
+                              find_idx txns s' (i+1) idx_lo' (min lo overdraft)
         Dep dep@(Deposit n v0' v1') -> 
           case executeDeposit s dep of 
             Left _  -> i
             Right s'@(_, users) -> 
-              if isGreen s' then find_idx txns s' (i+1) lo 
-              else
-                case findUserIdx users (depositor dep) of
-                  Nothing  -> i
-                  Just idx -> let name       = depositor dep
-                                  bal        = wallet $ users !! idx
-                                  token1     = fst (v0 dep)
-                                  token2     = fst (v1 dep) 
-                                  -- deposits shouldn't be able to overdraft, but...
-                                  overdraft1 = getBal (AtomTok token1) bal
-                                  overdraft2 = getBal (AtomTok token1) bal
-                              in 
-                                find_idx txns s' (i+1) (min lo (min overdraft1 overdraft2))
+              case findUserIdx users (depositor dep) of
+                Nothing  -> i
+                Just idx -> let name       = depositor dep
+                                bal        = wallet $ users !! idx
+                                token1     = fst (v0 dep)
+                                token2     = fst (v1 dep) 
+                                -- deposits shouldn't be able to overdraft, but...
+                                overdraft1 = getBal (AtomTok token1) bal
+                                overdraft2 = getBal (AtomTok token1) bal
+                                idx_lo'    = if (min overdraft1 overdraft2) < lo then i else idx_lo
+                            in 
+                              find_idx txns s' (i+1) idx_lo' (min lo (min overdraft1 overdraft2))
         Rdm rdm@(Redeem  n v )  -> i -- TODO : Fix when supported
 
 -- returns the index of the AMM corresponding to the AtomicToken pair (or Nothing)
