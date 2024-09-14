@@ -12,7 +12,7 @@ import qualified Data.Sequence as S
 
 introductionExample :: TestTree
 introductionExample = 
-  testCaseInfo "Introduction Example; Interaction between three users and two AMMs\n" do
+  testCaseInfo "\n\nIntroduction Example; Interaction between three users and two AMMs\n" do
     let amms =
           [(AMM (T1, 12) (T2, 12))]
         txns =

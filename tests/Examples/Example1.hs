@@ -13,7 +13,7 @@ import qualified Data.Sequence as S
 
 example1 :: TestTree
 example1 = 
-  testCaseInfo "example 1 \"Negative Balance Covered\"\n" do
+  testCaseInfo "\n\nexample 1 \"Negative Balance Covered\"\n" do
     let ex1_amms = 
           [(AMM (T0, 8) (T1, 18)),
             (AMM (T1, 8) (T2, 18)),

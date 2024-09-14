@@ -148,9 +148,10 @@ takeStep (conf@(Configuration green sim queue), i, log) txn maxqlen runInMaxOver
                   s''           = runQueue q' green 
               in
                 (Configuration s'' s'' S.Empty, i + 1, 
-                  (add_to_log (" applied netting rule, netting log:\n" ++ net_log) sim i) : log)
+                  (add_to_log (" applied netting rule, on queue:\n" ++ (show . toList $ queue :|> txn) 
+                                ++ "\n" ++ net_log) sim i) : log)
     add_to_log message s i = 
-      "\ntxn " ++ (show i) ++ ": " ++ (show txn) ++ message ++ " in state:\n" ++ (show s) ++ "\n"
+      "txn " ++ (show i) ++ ":\n " ++ (show txn) ++ message ++ " in state:\n" ++ (show s) ++ "\n"
 
 
 -- used to run a sequence of transactions on a configuration

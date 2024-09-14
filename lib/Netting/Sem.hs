@@ -2,16 +2,25 @@ module Netting.Sem where
 
 import qualified Data.Map as M
 import qualified Data.Sequence as S
+import qualified Data.List as L
 
 data AtomicToken
   = T0
   | T1
   | T2
-  deriving (Show, Eq, Ord)
+  deriving (Eq, Ord)
+
+instance Show AtomicToken where 
+  show T0 = "t0"
+  show T1 = "t1"
+  show T2 = "t2"
 
 data MintedToken a
   = MT (a, a)
-  deriving (Show, Ord)
+  deriving (Ord)
+
+instance (Show a) => Show (MintedToken a) where
+  show (MT (t0, t1)) = "{" ++ (show t0) ++ ", " ++ (show t1) ++ "}"
 
 instance (Eq a) => Eq (MintedToken a) where
   MT (t0, t1) == MT (t2, t3)
@@ -23,7 +32,11 @@ type MintedTokenT = MintedToken AtomicToken
 
 -- sort of like "Either", just for tokens
 data Token a b = AtomTok a | MintTok b
-  deriving (Show, Eq, Ord)
+  deriving (Eq, Ord)
+
+instance (Show a, Show b) => Show (Token a b) where
+  show (AtomTok t) = show t
+  show (MintTok t) = show t
 
 type TokenT = Token AtomicToken MintedTokenT 
 
@@ -32,7 +45,12 @@ type Balance = M.Map TokenT Float
 data User = User 
   { wallet  :: Balance,
     name    :: String }
-    deriving (Show, Eq)
+    deriving Eq
+  
+instance Show User where 
+  show (User w n) = n ++ "[" ++ (show_bal w) ++ "]"
+    where 
+      show_bal = unwords . L.intersperse ", " . map (\(t, v) -> (show v) ++ ": " ++ (show t)) . M.toList
 
 type TokenAmt = (AtomicToken, Float)
 
@@ -41,7 +59,10 @@ type MintedTokenAmt = (MintedTokenT, Float)
 data AMM = AMM 
   { r0 :: TokenAmt,
     r1 :: TokenAmt }
-    deriving (Show)
+
+instance Show AMM where 
+  show (AMM (t0, r0) (t1, r1)) = "{" ++ (show r0) ++ ": " ++ (show t0) ++ ", " ++ (show r1)
+                                     ++ ": " ++ (show t1) ++ "}"
 
 instance Eq AMM where
   AMM r0 r1 == AMM r2 r3 
@@ -53,7 +74,12 @@ type State = ([AMM], [User])
 
 data Transaction a b c
   = Swp a | Dep b | Rdm c
-  deriving (Show, Eq)
+  deriving Eq
+
+instance (Show a, Show b, Show c) => Show (Transaction a b c) where 
+  show (Swp swp) = show swp
+  show (Dep dep) = show dep
+  show (Rdm rdm) = show rdm
 
 type TransactionT
   = Transaction Swap Deposit Redeem
@@ -63,20 +89,31 @@ data Swap
   { sender :: String,
     from   :: TokenAmt,
     to     :: TokenAmt }
-    deriving (Show, Eq)
+    deriving (Eq)
+
+instance Show Swap where 
+  show (Swap n (t0, v0) (t1, v1)) = n ++ ": swap(" ++ (show v0) ++ ": " ++ (show t0) ++ ", " ++ (show v1)
+                                      ++ ": " ++ (show t1) ++ ")"
 
 data Deposit
   = Deposit
   { depositor :: String,
     v0        :: TokenAmt,
     v1        :: TokenAmt }
-    deriving (Show, Eq)
+    deriving Eq
+
+instance Show Deposit where 
+  show (Deposit n (t0, v0) (t1, v1)) = n ++ ": deposit(" ++ (show v0) ++ ": " ++ (show t0) ++ ", " ++ (show v1)
+                                         ++ ": " ++ (show t1) ++ ")"
 
 data Redeem
   = Redeem
   { redeemer :: String,
     v        :: MintedTokenAmt }
-    deriving (Show, Eq)
+    deriving Eq
+
+instance Show Redeem where 
+  show (Redeem n (mt, v)) = n ++ ": redeem(" ++ (show v) ++ ": " ++ (show mt) ++ ")"
 
 type Queue = S.Seq TransactionT
 

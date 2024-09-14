@@ -12,7 +12,7 @@ import qualified Data.Sequence as S
 
 example5 :: TestTree
 example5 =
-  testCaseInfo "example 5 \"Netting scenario\"\n" do
+  testCaseInfo "\n\nexample 5 \"Netting scenario\"\n" do
     let ex5_amms =
           [(AMM (T0, 12) (T1, 12)), 
             (AMM (T1, 18) (T2,  8)),

@@ -12,7 +12,7 @@ import qualified Data.Sequence as S
 
 example4 :: TestTree
 example4 =
-  testCaseInfo "example 4 \"Netting worse than standard\"\n" do
+  testCaseInfo "\n\nexample 4 \"Netting worse than standard\"\n" do
     let ex4_amms =
           [(AMM (T0, 12) (T1, 12)), 
             (AMM (T1, 18) (T2,  8))]

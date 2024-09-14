@@ -12,7 +12,7 @@ import qualified Data.Sequence as S
 
 example2 :: TestTree
 example2 = 
-  testCaseInfo "example 2 \"r-swap and AMM creation\"\n" do
+  testCaseInfo "\n\nexample 2 \"r-swap and AMM creation\"\n" do
     let ex2_amms = 
           [(AMM (T0, 8) (T1, 18))]
 
