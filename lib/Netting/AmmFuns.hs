@@ -71,7 +71,7 @@ executeDeposit s@(amms, users) dep@(Deposit name (t0, v0) (t1, v1))
                     if not (r0 * v1 == r1 * v0) then -- TODO: these are floats ... what is the precision of this equality?
                       Left $ "Deposit doesn't preserve ratio between reserves " ++ (show dep)
                     else 
-                      let payout = v0 / r0 * supply
+                      let payout = v0 / r0 * supply -- look into this one as well
                           amm'   = (AMM (t0, r0 + v0) (t1, r1 + v1))
                           bal'   = updateBal (AtomTok t0) (-v0) 
                                  . updateBal (AtomTok t1) (- v1)
@@ -122,7 +122,8 @@ net findOverdraft s (q@(txn :<| txns), log) =
     else
       let violating_idx = findOverdraft q s
           q'            = S.deleteAt violating_idx q
-          log_msg       = "removed idx " ++ (show violating_idx) ++ ", q now consists of\n" ++ (show . toList $ q') ++ "\n"
+          log_msg       = "removed idx " ++ (show violating_idx)
+                          ++ ", queue now consists of\n" ++ (show . toList $ q') ++ "\n"
       in 
         net findOverdraft s (q', log ++ log_msg)
 net _ _ (S.Empty, log) = (S.Empty, log)
@@ -138,28 +139,29 @@ takeStep (conf@(Configuration green sim queue), i, log) txn maxqlen runInMaxOver
       \case
         Left message -> (conf, i + 1, (add_to_log (" not executed becase " ++ message) sim i) : log)
         Right s'     -> 
-          if isGreen s' then (Configuration s' s' S.Empty, i + 1, (add_to_log " applied cover rule " sim i) : log)
+          if isGreen s' then (Configuration s' s' S.Empty, i + 1, (add_to_log " applied cover rule " s' i) : log)
           else 
             if S.length queue < maxqlen then
-              (Configuration green s' (queue :|> txn), i + 1, (add_to_log " applied overdraft rule" sim i) : log)
+              (Configuration green s' (queue :|> txn), i + 1, (add_to_log " applied overdraft rule" s' i) : log)
             else
               let nettingAlgo = if runInMaxOverdraftMode then findLargestOverdraft else findFirstOverdraft
                   (q', net_log) = net nettingAlgo green (queue :|> txn, "")
                   s''           = runQueue q' green 
               in
                 (Configuration s'' s'' S.Empty, i + 1, 
-                  (add_to_log (" applied netting rule, on queue:\n" ++ (show . toList $ queue :|> txn) 
-                                ++ "\n" ++ net_log) sim i) : log)
-    add_to_log message s i = 
-      "txn " ++ (show i) ++ ":\n " ++ (show txn) ++ message ++ " in state:\n" ++ (show s) ++ "\n"
+                  (add_to_log (" applied netting rule, as the state:\n" ++ (show s') ++ "\nis red, and queue is full:\n"
+                                ++ (show . toList $ queue :|> txn) ++ "\n" ++ net_log) s'' i) : log)
+    add_to_log message s' i = 
+      "txn " ++ (show i) ++ ":\n " ++ (show txn) ++ message ++ " resulting in state:\n" ++ (show s') ++ "\n"
 
 
 -- used to run a sequence of transactions on a configuration
 -- outputs (the configuration after executing txns, a log with a brief summary of each txn)
 runTransactions :: Bool -> Configuration -> [TransactionT] -> QLength -> (Configuration, [String])
-runTransactions runNetInMaxOverdraftMode conf txns maxqlen =
+runTransactions runNetInMaxOverdraftMode conf@(Configuration lg sim q) txns maxqlen =
   let (conf', _, log) = foldl' (\acc txn -> takeStep acc txn maxqlen runNetInMaxOverdraftMode) (conf, 1, []) txns
-  in (conf', "LOG: " : reverse log)
+      log' = ("Starting state:\n" ++ (show lg) ++ "\nExecution Log:") : reverse log
+  in (conf', log')
 
 
 --- More auxillary functions follows below ---
