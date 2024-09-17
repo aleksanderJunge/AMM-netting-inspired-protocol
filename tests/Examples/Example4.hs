@@ -30,14 +30,14 @@ example4 =
         expected = Configuration 
           -- green
           ([AMM (T0,  8.0) (T1, 18.0),
-            AMM (T2,  8.0) (T1, 18.0) ],
-            [User (fromList [(AtomTok T0, 0.0),(AtomTok T1, 0.0),(AtomTok T2, 4.0)]) "A",
-            User (fromList [(AtomTok T0, 8.0),(AtomTok T1, 0.0),(AtomTok T2, 0.0)]) "B"]) 
+            AMM (T2, 12.0) (T1, 12.0) ],
+            [User (fromList [(AtomTok T0, 4.0),(AtomTok T1, 0.0),(AtomTok T2, 0.0)]) "A",
+            User (fromList [(AtomTok T0, 4.0),(AtomTok T1, 6.0),(AtomTok T2, 0.0)]) "B"]) 
           -- simulated
           ([AMM (T0,  8.0) (T1, 18.0),
-            AMM (T2,  8.0) (T1, 18.0) ],
-            [User (fromList [(AtomTok T0, 0.0),(AtomTok T1, 0.0),(AtomTok T2, 4.0)]) "A",
-            User (fromList [(AtomTok T0, 8.0),(AtomTok T1, 0.0),(AtomTok T2, 0.0)]) "B"]) 
+            AMM (T2, 12.0) (T1, 12.0) ],
+            [User (fromList [(AtomTok T0, 4.0),(AtomTok T1, 0.0),(AtomTok T2, 0.0)]) "A",
+            User (fromList [(AtomTok T0, 4.0),(AtomTok T1, 6.0),(AtomTok T2, 0.0)]) "B"]) 
           -- queue
           (S.Empty)
         err_message = unlines (log ++ ["expected conf:"] ++ [(show expected)] ++ ["but got:"] ++ [(show res)])
