@@ -34,13 +34,13 @@ example6 =
             -- green
             ([AMM (T0, 12.0) (T1, 12.0),
               AMM (T1, 18.0) (T2,  8.0),
-              AMM (T2, 13.1) (T0, 11.0) ],
-            [User (fromList [(AtomTok T0, 1),(AtomTok T1, 0),(AtomTok T2, 2)]) "A"])
+              AMM (T2, 13.090909) (T0, 11.0) ],
+            [User (fromList [(AtomTok T0, 1),(AtomTok T1, 0),(AtomTok T2, 2.909091)]) "A"])
             -- simulated
             ([AMM (T0, 12.0) (T1, 12.0),
               AMM (T1, 18.0) (T2,  8.0),
-              AMM (T2, 13.1) (T0, 11.0) ],
-            [User (fromList [(AtomTok T0, 1),(AtomTok T1, 0),(AtomTok T2, 2)]) "A"])
+              AMM (T2, 13.090909) (T0, 11.0) ],
+            [User (fromList [(AtomTok T0, 1),(AtomTok T1, 0),(AtomTok T2, 2.909091)]) "A"])
             -- queue
             (S.Empty)
         err_message = unlines (log ++ ["expected conf:"] ++ [(show expected)] ++ ["but got:"] ++ [(show res)])

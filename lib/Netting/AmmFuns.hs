@@ -200,50 +200,46 @@ findFirstOverdraft q s =
             Left _   -> i
             Right s' -> if isGreen s' then find_idx txns s' (i+1) else i
 
--- takes a queue and a state, returns index of transaction in queue that causes the biggest overdraft
+-- takes a queue and a state, discards a transaction in queue that enlarges the biggest overdraft in the final state
 findLargestOverdraft :: Queue -> State -> Int
 findLargestOverdraft q s =
-  find_idx q s 0 0 0
+  let (_, usrs) = runQueue q s 
+      (a', t')  = find_max_overdraft usrs -- finds max overdraft after running queue in the t' balance of a'
+  in
+    find_idx q s 0 0 0 a' t'
   where 
-    find_idx S.Empty _ _ idx_lo _ = idx_lo
-    find_idx (txn :<| txns) s i idx_lo lo = 
+    find_max_overdraft users = 
+      let minVal  = foldr min 0 $ map ((M.foldr min 0) . wallet) users -- identify biggest overdraft
+          usr     = (!! 0) $ filter (\(User w _) -> (>= 1) . M.size $ M.filter (\v -> v == minVal) w) users 
+          (t, v)  = (!! 0) $ dropWhile (\(t, v) -> v /= minVal) (M.toList $ wallet usr)
+      in
+        (usr, t)
+    find_idx S.Empty _ _ idx_lo _ _ _ = idx_lo
+    find_idx (txn :<| txns) s i idx_lo lo u@(User w n) t =
       case txn of 
-        Swp swp@(Swap n (t0, v0) _) -> 
-          case executeSwap s swp of
-            Left _  -> i
+        Swp swp@(Swap name _ _)    | name == n -> check_a  $ executeSwap    s swp 
+        Swp swp                                -> continue $ executeSwap    s swp 
+        Dep dep@(Deposit name _ _) | name == n -> check_a  $ executeDeposit s dep
+        Dep dep                                -> continue $ executeDeposit s dep
+        Rdm rdm@(Redeem name _)    | name == n -> check_a  $ executeRedeem  s rdm
+        Rdm rdm                                -> continue $ executeRedeem  s rdm
+      where 
+        continue =  -- Txn not sent by user with biggest overdraft, keep looking
+          \case
+            Left _   -> i
+            Right s' -> find_idx txns s' (i+1) idx_lo lo u t
+        check_a =  -- Txn sent by user with biggest overdraft, check if bal is lower than lo
+          \case
+            Left _              -> i
             Right s'@(_, users) -> 
               case findUserIdx users n of
                 Nothing  -> i
                 Just idx -> let bal       = wallet $ users !! idx
-                                overdraft = getBal (AtomTok t0) bal
+                                overdraft = getBal t bal
                                 idx_lo'   = if overdraft < lo then i else idx_lo
-                            in 
-                              find_idx txns s' (i+1) idx_lo' (min lo overdraft)
-        Dep dep@(Deposit n (t0, v0) (t1, v1)) -> 
-          case executeDeposit s dep of 
-            Left _  -> i
-            Right s'@(_, users) -> 
-              case findUserIdx users n of
-                Nothing  -> i
-                Just idx -> let bal        = wallet $ users !! idx
-                                -- deposits shouldn't be able to overdraft, but...
-                                overdraft1 = getBal (AtomTok t0) bal
-                                overdraft2 = getBal (AtomTok t1) bal
-                                idx_lo'    = if (min overdraft1 overdraft2) < lo then i else idx_lo
-                            in 
-                              find_idx txns s' (i+1) idx_lo' (min lo (min overdraft1 overdraft2))
-        Rdm rdm@(Redeem  n (mt, v) )  ->
-          case executeRedeem s rdm of 
-            Left _  -> i
-            Right s'@(_, users) -> 
-              case findUserIdx users n of
-                Nothing  -> i
-                Just idx -> let bal        = wallet $ users !! idx
-                                -- redeems shouldn't be able to overdraft, but...
-                                overdraft = getBal (MintTok mt) bal
-                                idx_lo'    = if overdraft < lo then i else idx_lo
-                            in 
-                              find_idx txns s' (i+1) idx_lo' (min lo overdraft)
+                            in
+                              find_idx txns s' (i+1) idx_lo' (min lo overdraft) u t
+
 
 -- returns the index of the AMM corresponding to the AtomicToken pair (or Nothing)
 findAMMIdx :: [AMM] -> AtomicToken -> AtomicToken -> Maybe Int
