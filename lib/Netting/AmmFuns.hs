@@ -172,7 +172,7 @@ isGreen (_, users) =
   where is_neg = not . M.null . M.filter (< 0.0)
 
 getBal :: TokenT -> Balance -> Float
-getBal = M.findWithDefault 0.0
+getBal t bal = snd $ fromMaybe (t, 0.0) (find (\(t', v) -> t == t') (M.toList bal))
 
 -- Runs all the transactions in the queue and returns a new state
 runQueue :: Queue -> State -> State
