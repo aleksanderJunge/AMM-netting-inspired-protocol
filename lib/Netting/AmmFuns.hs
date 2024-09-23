@@ -24,9 +24,9 @@ swap amm@(AMM (t0, r0) (t1, r1)) txn@(Swap name (t2, v0) (t3, v1)) bal =
       in
       Right (AMM (t0, r0 + v0) (t1, r1 - payout), User bal' name)
     else 
-      Left $ name ++ " couldn't swap " ++ (show v0) ++ " " ++ (show t0) ++ " for " 
-                  ++ (show v1) ++ " " ++ (show t1) ++ ", AMM payout for this input would be: " 
-                  ++ (show payout) ++ " " ++ (show t1) ++ ". "
+      Left $ name ++ " couldn't swap " ++ (show $ fromRational v0) ++ " " ++ (show t0) ++ " for " 
+                  ++ (show $ fromRational v1) ++ " " ++ (show t1) ++ ", AMM payout for this input would be: " 
+                  ++ (show $ fromRational payout) ++ " " ++ (show t1) ++ ". "
   where 
     payout = (r1 * v0) / (r0 + v0) -- preserves CFMM properties
     updateBal t v bal = M.insert (AtomTok t) (getBal (AtomTok t) bal + v) bal
