@@ -171,8 +171,8 @@ isGreen (_, users) =
   (==0) . length $ filter (\(User w _) -> is_neg w) users
   where is_neg = not . M.null . M.filter (< 0.0)
 
-getBal :: TokenT -> Balance -> Float
-getBal t bal = snd $ fromMaybe (t, 0.0) (find (\(t', v) -> t == t') (M.toList bal))
+getBal :: TokenT -> Balance -> Rational
+getBal t bal = snd $ fromMaybe (t, 0.0) (find (\(t', _) -> t == t') (M.toList bal))
 
 -- Runs all the transactions in the queue and returns a new state
 runQueue :: Queue -> State -> State
@@ -268,7 +268,7 @@ findUserIdx users lfName =
 findUser :: String -> [User] -> Maybe User
 findUser name = find (\(User _ n) -> (n == name))
 
-tokenSupply :: State -> TokenT -> Float
+tokenSupply :: State -> TokenT -> Rational
 tokenSupply (amms, users) (AtomTok t) = 
   let amm_supply = sum $ map (\(AMM (t0, v0) (t1, v1)) -> 
                               if

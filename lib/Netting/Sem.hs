@@ -40,7 +40,7 @@ instance (Show a, Show b) => Show (Token a b) where
 
 type TokenT = Token AtomicToken MintedTokenT 
 
-type Balance = M.Map TokenT Float
+type Balance = M.Map TokenT Rational
 
 data User = User 
   { wallet  :: Balance,
@@ -50,19 +50,19 @@ data User = User
 instance Show User where 
   show (User w n) = n ++ "[" ++ (show_bal w) ++ "]"
     where 
-      show_bal = unwords . L.intersperse ", " . map (\(t, v) -> (show v) ++ ": " ++ (show t)) . M.toList
+      show_bal = unwords . L.intersperse ", " . map (\(t, v) -> (show $ fromRational v) ++ ": " ++ (show t)) . M.toList
 
-type TokenAmt = (AtomicToken, Float)
+type TokenAmt = (AtomicToken, Rational)
 
-type MintedTokenAmt = (MintedTokenT, Float)
+type MintedTokenAmt = (MintedTokenT, Rational)
 
 data AMM = AMM 
   { r0 :: TokenAmt,
     r1 :: TokenAmt }
 
 instance Show AMM where 
-  show (AMM (t0, r0) (t1, r1)) = "{" ++ (show r0) ++ ": " ++ (show t0) ++ ", " ++ (show r1)
-                                     ++ ": " ++ (show t1) ++ "}"
+  show (AMM (t0, r0) (t1, r1)) = "{" ++ (show $ fromRational r0) ++ ": " ++ (show t0) ++ ", "
+                                     ++ (show $ fromRational r1) ++ ": " ++ (show t1) ++ "}"
 
 instance Eq AMM where
   AMM r0 r1 == AMM r2 r3 
@@ -92,8 +92,8 @@ data Swap
     deriving (Eq)
 
 instance Show Swap where 
-  show (Swap n (t0, v0) (t1, v1)) = n ++ ": swap(" ++ (show v0) ++ ": " ++ (show t0) ++ ", " ++ (show v1)
-                                      ++ ": " ++ (show t1) ++ ")"
+  show (Swap n (t0, v0) (t1, v1)) = n ++ ": swap(" ++ (show $ fromRational v0) ++ ": " ++ (show t0) ++ ", " 
+                                      ++ (show $ fromRational v1) ++ ": " ++ (show t1) ++ ")"
 
 data Deposit
   = Deposit
@@ -103,8 +103,8 @@ data Deposit
     deriving Eq
 
 instance Show Deposit where 
-  show (Deposit n (t0, v0) (t1, v1)) = n ++ ": deposit(" ++ (show v0) ++ ": " ++ (show t0) ++ ", " ++ (show v1)
-                                         ++ ": " ++ (show t1) ++ ")"
+  show (Deposit n (t0, v0) (t1, v1)) = n ++ ": deposit(" ++ (show $ fromRational v0) ++ ": " ++ (show t0) ++ ", " 
+                                         ++ (show $ fromRational v1) ++ ": " ++ (show t1) ++ ")"
 
 data Redeem
   = Redeem
@@ -113,7 +113,7 @@ data Redeem
     deriving Eq
 
 instance Show Redeem where 
-  show (Redeem n (mt, v)) = n ++ ": redeem(" ++ (show v) ++ ": " ++ (show mt) ++ ")"
+  show (Redeem n (mt, v)) = n ++ ": redeem(" ++ (show $ fromRational v) ++ ": " ++ (show mt) ++ ")"
 
 type Queue = S.Seq TransactionT
 
