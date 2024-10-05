@@ -117,15 +117,16 @@ executeRedeem s@(amms, users) rdm@(Redeem name (mt@(MT (t0, t1)), v))
 -- Takes a state and a queue of txns and finds a solution to the 'netting-problem'
 net :: (Queue -> State -> Int) -> State -> (Queue, String) -> (Queue, String)
 net findOverdraft s (q@(txn :<| txns), log) = 
-  let s' = runQueue q s in 
-    if isGreen s' then (q, log)
+  let q' = runAndDrop q s 
+      s' = runQueue q' s in 
+    if isGreen s' then (q', log)
     else
-      let violating_idx = findOverdraft q s
-          q'            = S.deleteAt violating_idx q
+      let violating_idx = findOverdraft q' s
+          q''           = S.deleteAt violating_idx q'
           log_msg       = "removed idx " ++ (show violating_idx)
-                          ++ ", queue now consists of\n" ++ (show . toList $ q') ++ "\n"
-      in 
-        net findOverdraft s (q', log ++ log_msg)
+                          ++ ", queue now consists of\n" ++ (show . toList $ q'') ++ "\n"
+      in
+        net findOverdraft s (q'', log ++ log_msg)
 net _ _ (S.Empty, log) = (S.Empty, log)
 
 takeStep :: (Configuration, Int, [String]) -> TransactionT -> QLength -> Bool -> (Configuration, Int, [String])
@@ -183,6 +184,19 @@ runQueue (txn :<| txns) s =
             Rdm rdm -> fromRight s (executeRedeem  s rdm)
   in runQueue txns s'
 runQueue S.Empty s = s
+
+-- returns the queue after running and discarding any transactions whose premise is unsat
+runAndDrop :: Queue -> State -> Queue
+runAndDrop q s =
+  let (states :|> _) = S.scanl (\s' tx -> fromRight s' (exec_txn s' tx)) s q
+      maybeTxns      = S.zipWith check_txn states q
+  in S.fromList . catMaybes . toList $ maybeTxns
+    where exec_txn s txn =
+            case txn of 
+              Swp swp -> executeSwap    s swp
+              Dep dep -> executeDeposit s dep
+              Rdm rdm -> executeRedeem  s rdm
+          check_txn s txn = if isRight $ exec_txn s txn then Just txn else Nothing
 
 -- takes a queue and a state, and finds the first transaction in the queue that results in a red state
 findFirstOverdraft :: Queue -> State -> Int
