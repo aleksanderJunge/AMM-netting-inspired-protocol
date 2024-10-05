@@ -3,26 +3,20 @@ name:               amm-netting
 version:            0.1.0.0
 
 -- A short (one-line) description of the package.
--- synopsis:
-
--- A longer description of the package.
--- description:
+-- synopsis: Liquidity saving mechanism for AMMs using netting on a queue.
 
 -- A URL where users can report bugs.
--- bug-reports:
+-- bug-reports: https://github.com/aleksanderJunge/AMM-netting-inspired-protocol/issues
 
 -- The license under which the package is released.
--- license:
+-- license: GNU General Public License version 3
 
 -- The package author(s).
--- author:
+-- author: Aleksander Junge
 
 -- An email address to which users can send suggestions, bug reports, and patches.
--- maintainer:
+-- maintainer: ajunge123@gmail.com
 
--- A copyright notice.
--- copyright:
--- category:
 library netting-lib
     exposed-modules: Netting.AmmFuns,
                      Netting.Sem,
